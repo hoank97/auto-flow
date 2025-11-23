@@ -222,13 +222,11 @@
     function handleLogin() {
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
-      console.log('Login submitted:', { username, password });
       alert(`Login submitted!\nUsername: ${username}`);
     }
     
     function handleSearch() {
       const searchInput = document.querySelector('input[name="search"]');
-      console.log('Search query:', searchInput.value);
       document.getElementById('searchResult').classList.add('show');
     }
     
@@ -242,7 +240,6 @@
       const lastName = document.getElementById('lastName').value;
       const email = document.getElementById('email').value;
       const phone = document.getElementById('phone').value;
-      console.log('Form submitted:', { firstName, lastName, email, phone });
       alert('Form submitted successfully!');
     }
   </script>

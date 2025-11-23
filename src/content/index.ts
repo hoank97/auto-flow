@@ -1,19 +1,25 @@
 import { WorkflowStep } from '../workflows/types';
 
-console.log('[Auto-Flow Content] Script loaded');
+
 
 // Listen for messages from popup/background
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  console.log('[Auto-Flow Content] Received message:', message);
 
   if (message.type === 'EXECUTE_WORKFLOW') {
-    executeWorkflow(message.steps)
+    const metadata = message.metadata;
+    executeWorkflow(message.steps, metadata)
       .then(() => {
-        console.log('[Auto-Flow Content] Workflow completed successfully');
+        console.log('[Auto-Flow Content] ✅ Workflow completed successfully');
+        if (metadata) {
+          console.log('[Auto-Flow Content] 🎉 PROMPT COMPLETED');
+        }
         sendResponse({ success: true });
       })
       .catch((error) => {
         console.error('[Auto-Flow Content] Workflow failed:', error);
+        if (metadata) {
+          console.error('[Auto-Flow Content] ❌ PROMPT FAILED');
+        }
         sendResponse({ success: false, error: error.message });
       });
     return true; // Keep channel open for async response
@@ -21,17 +27,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 // Execute workflow steps sequentially
-async function executeWorkflow(steps: WorkflowStep[]): Promise<void> {
+async function executeWorkflow(steps: WorkflowStep[], metadata?: any): Promise<void> {
+  console.log('[Auto-Flow Content] 📋 Starting workflow');
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
-    console.log(`[Auto-Flow Content] Executing step ${i + 1}/${steps.length}:`, step);
-
     try {
       await executeStep(step);
-      // Small delay between steps for stability
       await sleep(300);
     } catch (error) {
-      throw new Error(`Step ${i + 1} failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
     }
   }
 }
@@ -75,7 +79,6 @@ async function fillInput(selector: string, value: string): Promise<void> {
     element.value = value;
     element.dispatchEvent(new Event('input', { bubbles: true }));
     element.dispatchEvent(new Event('change', { bubbles: true }));
-    console.log(`[Auto-Flow Content] Filled input ${selector} with: ${value}`);
   }
   // Check if it's a contentEditable element (like <p>, <div>, or Lexical editor)
   else if (element instanceof HTMLElement) {
@@ -117,7 +120,6 @@ async function fillInput(selector: string, value: string): Promise<void> {
 
       if (!inserted) {
         // Method 2: Fallback - use clipboard events
-        console.log('[Auto-Flow Content] execCommand failed, trying clipboard method');
 
         // Create and dispatch paste event
         const dataTransfer = new DataTransfer();
@@ -133,7 +135,6 @@ async function fillInput(selector: string, value: string): Promise<void> {
 
         // If paste event was prevented, manually insert
         if (pasteEvent.defaultPrevented) {
-          console.log('[Auto-Flow Content] Paste prevented, using manual insertion');
 
           // Focus and set cursor at the end
           editableElement.focus();
@@ -165,14 +166,11 @@ async function fillInput(selector: string, value: string): Promise<void> {
 
       // Dispatch final events
       editableElement.dispatchEvent(new Event('change', { bubbles: true }));
-
-      console.log(`[Auto-Flow Content] Filled contentEditable/Lexical ${selector} with: ${value}`);
     }
     // Regular element fallback
     else {
       element.textContent = value;
       element.dispatchEvent(new Event('input', { bubbles: true }));
-      console.log(`[Auto-Flow Content] Set text content of ${selector} to: ${value}`);
     }
   }
   else {
@@ -194,7 +192,6 @@ async function clickElement(selector: string, index?: number): Promise<void> {
     }
     const element = elements[index] as HTMLElement;
     element.click();
-    console.log(`[Auto-Flow Content] Clicked element [${index}]: ${selector}`);
   } else {
     // Query single element
     const element = document.querySelector(selector) as HTMLElement;
@@ -202,7 +199,6 @@ async function clickElement(selector: string, index?: number): Promise<void> {
       throw new Error(`Element not found: ${selector}`);
     }
     element.click();
-    console.log(`[Auto-Flow Content] Clicked element: ${selector}`);
   }
 }
 
@@ -213,7 +209,6 @@ async function waitForElement(selector: string, timeout: number = 10000): Promis
   while (Date.now() - startTime < timeout) {
     const element = document.querySelector(selector);
     if (element) {
-      console.log(`[Auto-Flow Content] Element found: ${selector}`);
       return;
     }
     await sleep(100);
@@ -228,12 +223,9 @@ async function waitForNewResults(selector: string, expectedCount: number, timeou
   const targetCount = initialCount + expectedCount;
   const startTime = Date.now();
 
-  console.log(`[Auto-Flow Content] Waiting for ${expectedCount} new results. Initial count: ${initialCount}, Target: ${targetCount}`);
-
   while (Date.now() - startTime < timeout) {
     const currentCount = document.querySelectorAll(selector).length;
     if (currentCount >= targetCount) {
-      console.log(`[Auto-Flow Content] New results appeared! Count: ${currentCount}`);
       return;
     }
     await sleep(500); // Check every 500ms

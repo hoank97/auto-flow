@@ -38,7 +38,8 @@ function App() {
       // Send workflow to content script
       const response = await chrome.tabs.sendMessage(tab.id, {
         type: 'EXECUTE_WORKFLOW',
-        steps: customSteps || workflow.steps
+        steps: customSteps || workflow.steps,
+        metadata: customSteps ? (customSteps as any).metadata : undefined
       });
 
       if (!response.success) {
@@ -58,6 +59,7 @@ function App() {
     setBatchPrompts(prompts);
   };
 
+
   const handleRunBatch = async () => {
     if (batchPrompts.length === 0) {
       alert('Please preview prompts first');
@@ -67,85 +69,81 @@ function App() {
     setIsBatchRunning(true);
     setBatchProgress({ current: 0, total: batchPrompts.length });
 
-    // Use "Generate & Download" workflow
-    const workflow = getWorkflowById('meta-ai-generate-download');
-    if (!workflow) {
-      alert('Generate & Download workflow not found');
+    // Get workflows
+    const submitWorkflow = getWorkflowById('meta-ai-submit-only');
+    const downloadWorkflow = getWorkflowById('meta-ai-download-only');
+    
+    if (!submitWorkflow || !downloadWorkflow) {
+      alert('Required workflows not found');
       setIsBatchRunning(false);
       return;
     }
 
-    // Track which prompts have started
-    const startedPrompts = new Set<number>();
+    console.log(`[Batch] Starting ${batchPrompts.length} prompts...`);
 
-    // Create array of promises for parallel execution
-    const workflowPromises = batchPrompts.map((prompt, i) => {
-      return new Promise<void>(async (resolve) => {
-        // Delay start time based on index
-        if (i > 0) {
-          await new Promise(r => setTimeout(r, delayBetweenPrompts * i));
-        }
+    // Process each prompt sequentially
+    for (let i = 0; i < batchPrompts.length; i++) {
+      const prompt = batchPrompts[i];
 
-        // Mark this prompt as started
-        startedPrompts.add(i);
+      // Update status to processing
+      setBatchPrompts(prev => prev.map((p, idx) => 
+        idx === i ? { ...p, status: 'processing' as PromptStatus } : p
+      ));
+      
+      setBatchProgress({ 
+        current: i + 1,
+        total: batchPrompts.length,
+        currentPrompt: prompt.text 
+      });
 
-        // Update status to processing
-        setBatchPrompts(prev => prev.map((p, idx) => 
-          idx === i ? { ...p, status: 'processing' as PromptStatus } : p
-        ));
-        
-        setBatchProgress(prev => ({ 
-          ...prev, 
-          current: Math.max(prev.current, i + 1),
-          currentPrompt: prompt.text 
-        }));
-
-        // Calculate download button indices
-        // Count how many prompts will start AFTER this one
-        const promptsAfter = batchPrompts.length - i - 1;
-        // Each prompt after this one will add 4 videos, pushing this prompt's videos down
-        const baseIndex = promptsAfter * 4;
-        
-        // Clone workflow steps and modify the prompt and download indices
-        const customSteps = workflow.steps.map(step => {
+      try {
+        // Submit prompt and wait for generation
+        const submitSteps = submitWorkflow.steps.map(step => {
           if (step.type === 'fillInput') {
             return { ...step, value: prompt.text };
-          }
-          // Update download button indices
-          if (step.type === 'click' && step.selector.includes('Download media')) {
-            const currentIndex = step.index ?? 0;
-            return { ...step, index: baseIndex + currentIndex };
           }
           return step;
         });
 
-        try {
-          await runWorkflow(workflow.id, customSteps);
-          
-          // Update status to completed
-          setBatchPrompts(prev => prev.map((p, idx) => 
-            idx === i ? { ...p, status: 'completed' as PromptStatus } : p
-          ));
-        } catch (error) {
-          console.error(`Failed to process prompt ${i + 1}:`, error);
-          
-          // Update status to error
-          setBatchPrompts(prev => prev.map((p, idx) => 
-            idx === i ? { 
-              ...p, 
-              status: 'error' as PromptStatus,
-              error: error instanceof Error ? error.message : 'Unknown error'
-            } : p
-          ));
-        }
+        await runWorkflow(submitWorkflow.id, Object.assign(submitSteps, {
+          metadata: { promptIndex: i, promptText: prompt.text, phase: 'submit' }
+        }));
+
+        // Wait 20 seconds before download
+        await new Promise(r => setTimeout(r, 20000));
+
+        // Download results
+        await runWorkflow(downloadWorkflow.id, Object.assign(downloadWorkflow.steps, {
+          metadata: { promptIndex: i, promptText: prompt.text, phase: 'download' }
+        }));
         
-        resolve();
-      });
-    });
+        console.log(`[Batch] ✅ Prompt ${i + 1}/${batchPrompts.length} completed`);
 
-    // Wait for all workflows to complete
-    await Promise.all(workflowPromises);
+        // Update status to completed
+        setBatchPrompts(prev => prev.map((p, idx) => 
+          idx === i ? { ...p, status: 'completed' as PromptStatus } : p
+        ));
 
+        // Delay before next prompt
+        if (i < batchPrompts.length - 1) {
+          await new Promise(r => setTimeout(r, delayBetweenPrompts));
+        }
+
+      } catch (error) {
+        console.error(`[Batch] ❌ Prompt ${i + 1} failed:`, error);
+        
+        // Update status to error
+        setBatchPrompts(prev => prev.map((p, idx) => 
+          idx === i ? { 
+            ...p, 
+            status: 'error' as PromptStatus,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          } : p
+        ));
+      }
+    }
+
+    console.log('[Batch] 🎊 Done!');
     setIsBatchRunning(false);
     setBatchProgress({ current: batchPrompts.length, total: batchPrompts.length });
   };

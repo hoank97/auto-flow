@@ -6,7 +6,7 @@
     "isEntry": true
   },
   "index.html": {
-    "file": "assets/index.html-DtKEaIFd.js",
+    "file": "assets/index.html-BRQwVZfH.js",
     "name": "index.html",
     "src": "index.html",
     "isEntry": true,
@@ -15,13 +15,13 @@
     ]
   },
   "src/background/index.ts": {
-    "file": "assets/index.ts-dbinSOsc.js",
+    "file": "assets/index.ts--hNpCJQb.js",
     "name": "index.ts",
     "src": "src/background/index.ts",
     "isEntry": true
   },
   "src/content/index.ts": {
-    "file": "assets/index.ts-C31C_bzi.js",
+    "file": "assets/index.ts-qy4dSr2V.js",
     "name": "index.ts",
     "src": "src/content/index.ts",
     "isEntry": true
