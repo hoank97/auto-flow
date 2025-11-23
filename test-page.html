@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto-Flow Test Page</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      color: #1f2937;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    
+    .subtitle {
+      color: #6b7280;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #374151;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 10px;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .search-section {
+      margin-top: 40px;
+      padding-top: 40px;
+      border-top: 2px solid #e5e7eb;
+    }
+    
+    .download-link {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 12px 24px;
+      background: #10b981;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    
+    .download-link:hover {
+      background: #059669;
+      transform: translateY(-2px);
+    }
+    
+    .result {
+      margin-top: 20px;
+      padding: 16px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      display: none;
+    }
+    
+    .result.show {
+      display: block;
+    }
+    
+    .multi-step {
+      margin-top: 40px;
+      padding-top: 40px;
+      border-top: 2px solid #e5e7eb;
+    }
+    
+    .step {
+      display: none;
+    }
+    
+    .step.active {
+      display: block;
+    }
+    
+    .step-indicator {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Auto-Flow Test Page</h1>
+    <p class="subtitle">Use this page to test your workflow automation</p>
+    
+    <!-- Login Form -->
+    <div class="form-group">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" placeholder="Enter username">
+    </div>
+    
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="Enter password">
+    </div>
+    
+    <button type="submit" onclick="handleLogin()">Submit</button>
+    
+    <!-- Search Section -->
+    <div class="search-section">
+      <h2 style="margin-bottom: 20px; color: #1f2937;">Search & Download</h2>
+      
+      <div class="form-group">
+        <label for="search">Search Query</label>
+        <input type="text" name="search" placeholder="Enter search term">
+      </div>
+      
+      <button class="search-btn" onclick="handleSearch()">Search</button>
+      
+      <div class="result" id="searchResult">
+        <p><strong>Search Results:</strong></p>
+        <a href="#" class="download-link" download>Download Results</a>
+      </div>
+    </div>
+    
+    <!-- Multi-Step Form -->
+    <div class="multi-step">
+      <h2 style="margin-bottom: 20px; color: #1f2937;">Multi-Step Form</h2>
+      
+      <div class="step active" id="step1">
+        <div class="step-indicator">Step 1 of 2</div>
+        
+        <div class="form-group">
+          <label for="firstName">First Name</label>
+          <input type="text" id="firstName" placeholder="Enter first name">
+        </div>
+        
+        <div class="form-group">
+          <label for="lastName">Last Name</label>
+          <input type="text" id="lastName" placeholder="Enter last name">
+        </div>
+        
+        <button class="next-step" onclick="nextStep()">Next Step</button>
+      </div>
+      
+      <div class="step" id="step2">
+        <div class="step-indicator">Step 2 of 2</div>
+        
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="Enter email">
+        </div>
+        
+        <div class="form-group">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" placeholder="Enter phone">
+        </div>
+        
+        <button class="submit" onclick="submitForm()">Submit</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    function handleLogin() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      console.log('Login submitted:', { username, password });
+      alert(`Login submitted!\nUsername: ${username}`);
+    }
+    
+    function handleSearch() {
+      const searchInput = document.querySelector('input[name="search"]');
+      console.log('Search query:', searchInput.value);
+      document.getElementById('searchResult').classList.add('show');
+    }
+    
+    function nextStep() {
+      document.getElementById('step1').classList.remove('active');
+      document.getElementById('step2').classList.add('active');
+    }
+    
+    function submitForm() {
+      const firstName = document.getElementById('firstName').value;
+      const lastName = document.getElementById('lastName').value;
+      const email = document.getElementById('email').value;
+      const phone = document.getElementById('phone').value;
+      console.log('Form submitted:', { firstName, lastName, email, phone });
+      alert('Form submitted successfully!');
+    }
+  </script>
+</body>
+</html>

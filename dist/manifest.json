@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Auto-Flow",
+  "version": "1.0.0",
+  "description": "Workflow automation extension - define and run automation workflows in TypeScript",
+  "action": {
+    "default_popup": "index.html"
+  },
+  "background": {
+    "service_worker": "service-worker-loader.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "js": [
+        "assets/index.ts-C31C_bzi.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "web_accessible_resources": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "resources": [
+        "assets/index.ts-C31C_bzi.js"
+      ],
+      "use_dynamic_url": false
+    }
+  ]
+}
