@@ -20,9 +20,19 @@ function App() {
   // Batch state
   const [batchInput, setBatchInput] = useState('');
   const [batchPrompts, setBatchPrompts] = useState<PromptItem[]>([]);
-  const [batchProgress, setBatchProgress] = useState<BatchProgress>({ current: 0, total: 0 });
+  const [_batchProgress, setBatchProgress] = useState<BatchProgress>({ current: 0, total: 0 });
   const [isBatchRunning, setIsBatchRunning] = useState(false);
   const [delayBetweenPrompts, setDelayBetweenPrompts] = useState(2000); // milliseconds
+  const [expandedPrompts, setExpandedPrompts] = useState<number[]>([]);
+  const [activeTab, setActiveTab] = useState('control');
+
+  const toggleExpand = (index: number) => {
+    setExpandedPrompts(prev => 
+      prev.includes(index) 
+        ? prev.filter(i => i !== index)
+        : [...prev, index]
+    );
+  };
 
   const runWorkflow = async (workflowId: string, customSteps?: WorkflowStep[]) => {
     const workflow = getWorkflowById(workflowId);
@@ -50,24 +60,14 @@ function App() {
     }
   };
 
-  const handlePreview = () => {
-    const prompts = batchInput
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0)
-      .map(text => ({ text, status: 'pending' as PromptStatus }));
-    setBatchPrompts(prompts);
-  };
-
-
-  const handleRunBatch = async () => {
-    if (batchPrompts.length === 0) {
-      alert('Please preview prompts first');
+  const handleRunBatch = async (promptsToRun: PromptItem[]) => {
+    if (promptsToRun.length === 0) {
+      alert('Please enter prompts first');
       return;
     }
 
     setIsBatchRunning(true);
-    setBatchProgress({ current: 0, total: batchPrompts.length });
+    setBatchProgress({ current: 0, total: promptsToRun.length });
 
     // Get workflows
     const submitWorkflow = getWorkflowById('meta-ai-submit-only');
@@ -79,11 +79,11 @@ function App() {
       return;
     }
 
-    console.log(`[Batch] Starting ${batchPrompts.length} prompts...`);
+    console.log(`[Batch] Starting ${promptsToRun.length} prompts...`);
 
     // Process each prompt sequentially
-    for (let i = 0; i < batchPrompts.length; i++) {
-      const prompt = batchPrompts[i];
+    for (let i = 0; i < promptsToRun.length; i++) {
+      const prompt = promptsToRun[i];
 
       // Update status to processing
       setBatchPrompts(prev => prev.map((p, idx) => 
@@ -92,7 +92,7 @@ function App() {
       
       setBatchProgress({ 
         current: i + 1,
-        total: batchPrompts.length,
+        total: promptsToRun.length,
         currentPrompt: prompt.text 
       });
 
@@ -117,7 +117,7 @@ function App() {
           metadata: { promptIndex: i, promptText: prompt.text, phase: 'download' }
         }));
         
-        console.log(`[Batch] ✅ Prompt ${i + 1}/${batchPrompts.length} completed`);
+        console.log(`[Batch] ✅ Prompt ${i + 1}/${promptsToRun.length} completed`);
 
         // Update status to completed
         setBatchPrompts(prev => prev.map((p, idx) => 
@@ -125,7 +125,7 @@ function App() {
         ));
 
         // Delay before next prompt
-        if (i < batchPrompts.length - 1) {
+        if (i < promptsToRun.length - 1) {
           await new Promise(r => setTimeout(r, delayBetweenPrompts));
         }
 
@@ -145,104 +145,144 @@ function App() {
 
     console.log('[Batch] 🎊 Done!');
     setIsBatchRunning(false);
-    setBatchProgress({ current: batchPrompts.length, total: batchPrompts.length });
+    setBatchProgress({ current: promptsToRun.length, total: promptsToRun.length });
+  };
+
+  const handleStart = () => {
+    const prompts = batchInput
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .map(text => ({ text, status: 'pending' as PromptStatus }));
+    
+    if (prompts.length === 0) {
+      alert('Please enter prompts first');
+      return;
+    }
+
+    setBatchPrompts(prompts);
+    handleRunBatch(prompts);
   };
 
   return (
     <div className="app">
+      {/* Header */}
       <header className="header">
-        <h1>⚡ Auto-Flow</h1>
-        <p className="subtitle">Meta.AI Batch Processing</p>
-      </header>
-
-      <div className="batch-container">
-        <div className="batch-input-section">
-          <label htmlFor="batch-input">Enter prompts (one per line):</label>
-          <textarea
-            id="batch-input"
-            className="batch-textarea"
-            value={batchInput}
-            onChange={(e) => setBatchInput(e.target.value)}
-            placeholder="a video of a beautiful sunset&#10;a video of a mountain landscape&#10;a video of ocean waves"
-            rows={8}
-            disabled={isBatchRunning}
-          />
-          
-          <div className="batch-config">
-            <label htmlFor="delay-input">Delay between prompts (seconds):</label>
-            <input
-              id="delay-input"
-              type="number"
-              min="0"
-              max="60"
-              step="1"
-              value={delayBetweenPrompts / 1000}
-              onChange={(e) => setDelayBetweenPrompts(Number(e.target.value) * 1000)}
-              disabled={isBatchRunning}
-              className="delay-input"
-            />
+        <div className="header-brand">
+          <div className="logo-container">
+            🤖
           </div>
-          
-          <div className="batch-actions">
-            <button
-              className="btn-preview"
-              onClick={handlePreview}
-              disabled={isBatchRunning || !batchInput.trim()}
-            >
-              Preview ({batchInput.split('\n').filter(l => l.trim()).length} prompts)
-            </button>
-            <button
-              className="btn-run-batch"
-              onClick={handleRunBatch}
-              disabled={isBatchRunning || batchPrompts.length === 0}
-            >
-              {isBatchRunning ? 'Running...' : 'Run All'}
-            </button>
+          <div className="brand-info">
+            <h1>Auto Meta</h1>
+            <p>Automation for Meta AI</p>
           </div>
         </div>
+        <div className="header-actions">
+          <button className="btn-icon" title="Buy Me a Coffee">☕</button>
+        </div>
+      </header>
 
-        {batchPrompts.length > 0 && (
-          <div className="batch-preview">
-            <h3>Preview ({batchPrompts.length} prompts)</h3>
-            <ul className="batch-prompts-list">
-              {batchPrompts.map((prompt, index) => {
-                const getStatusBadge = (status: PromptStatus) => {
-                  switch (status) {
-                    case 'pending':
-                      return <span className="status-badge pending">⏸️ Pending</span>;
-                    case 'processing':
-                      return <span className="status-badge processing">⏳ Processing</span>;
-                    case 'completed':
-                      return <span className="status-badge completed">✅ Downloaded</span>;
-                    case 'error':
-                      return <span className="status-badge error">❌ Error</span>;
-                  }
-                };
+      {/* Navigation */}
+      <nav className="nav-tabs">
+        {['Control', 'Settings', 'History', 'More Tools'].map((tab) => (
+          <button 
+            key={tab}
+            className={`nav-item ${activeTab === tab.toLowerCase() ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.toLowerCase())}
+          >
+            {tab}
+          </button>
+        ))}
+      </nav>
 
-                return (
-                  <li key={index} className={`prompt-item ${prompt.status}`}>
-                    <span className="prompt-number">{index + 1}.</span>
-                    <span className="prompt-text">{prompt.text}</span>
-                    {getStatusBadge(prompt.status)}
-                    {prompt.error && (
-                      <div className="prompt-error">{prompt.error}</div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
+      {/* Main Content */}
+      <main className="main-content">
+        {activeTab === 'control' && (
+          <div className="control-panel">
+            {/* Input Section */}
+            <section className="card">
+              <div className="section-header">
+                <h2 className="section-title">
+                  <span>📝</span> Prompt List
+                </h2>
+                {batchPrompts.length > 0 && (
+                  <span className="status-badge">
+                    {batchPrompts.filter(p => p.status === 'completed').length} / {batchPrompts.length} Done
+                  </span>
+                )}
+              </div>
 
-        {isBatchRunning && (
-          <div className="batch-progress">
-            <p>Processing: {batchProgress.current} / {batchProgress.total}</p>
-            {batchProgress.currentPrompt && (
-              <p className="current-prompt">Current: {batchProgress.currentPrompt}</p>
+              <div className="input-wrapper">
+                <textarea
+                  className="prompt-textarea"
+                  value={batchInput}
+                  onChange={(e) => setBatchInput(e.target.value)}
+                  placeholder="Enter your prompts here (one per line)..."
+                  disabled={isBatchRunning}
+                />
+              </div>
+
+              <div className="controls-area">
+                <div className="setting-group">
+                  <span className="setting-label">Delay (s):</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="60"
+                    className="setting-input"
+                    value={delayBetweenPrompts / 1000}
+                    onChange={(e) => setDelayBetweenPrompts(Number(e.target.value) * 1000)}
+                    disabled={isBatchRunning}
+                  />
+                </div>
+
+                {!isBatchRunning ? (
+                  <button
+                    className="btn-primary"
+                    onClick={handleStart}
+                    disabled={!batchInput.trim()}
+                  >
+                    <span>▶</span> Start Automation
+                  </button>
+                ) : (
+                  <button className="btn-danger" disabled>
+                    <span>⏹</span> Stop
+                  </button>
+                )}
+              </div>
+            </section>
+
+            {/* Status List */}
+            {batchPrompts.length > 0 && (
+              <div className="status-list">
+                {batchPrompts.map((prompt, index) => {
+                  const isExpanded = expandedPrompts.includes(index);
+                  return (
+                    <div key={index} className={`status-item ${prompt.status}`}>
+                      <div className="status-indicator">
+                        {prompt.status === 'completed' ? '✓' : 
+                         prompt.status === 'processing' ? '⟳' : 
+                         prompt.status === 'error' ? '✕' : (index + 1)}
+                      </div>
+                      <div className="status-content">
+                        <div 
+                          className={`prompt-preview ${isExpanded ? 'expanded' : ''}`}
+                          onClick={() => toggleExpand(index)}
+                        >
+                          {prompt.text}
+                        </div>
+                        <div className="status-badge">
+                          {prompt.status.charAt(0).toUpperCase() + prompt.status.slice(1)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

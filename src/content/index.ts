@@ -27,7 +27,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 // Execute workflow steps sequentially
-async function executeWorkflow(steps: WorkflowStep[], metadata?: any): Promise<void> {
+async function executeWorkflow(steps: WorkflowStep[], _metadata?: any): Promise<void> {
   console.log('[Auto-Flow Content] 📋 Starting workflow');
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
